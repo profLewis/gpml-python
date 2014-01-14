@@ -1,0 +1,21 @@
+TODO
+ - mean/cov: masking
+ - lik: gauss,erf
+ - inf: ep,la,fitc
+
+2014-01-13
+ - hyper.py containing the hyperparameter iterator
+   common to mean/covariance/likelihood
+ - gp prediction
+ - likelihood.py: gauss,erf started
+
+2014-01-07
+ - gp prediction
+ - mean.py: pow+poly
+ - covariance.py: rq+matern+gabor, improved sq_dist
+
+2014-01-06
+ - inf/gp structure + tests
+
+2013-12-18
+ - mean/covariance structure
