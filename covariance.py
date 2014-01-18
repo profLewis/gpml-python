@@ -99,18 +99,38 @@ class Covariance(HyperIter):
     def __call__(self, x,z=None, diag=False,deriv=None):
         return self.evaluate(x,z=z,diag=diag,deriv=deriv)
 
-def sq_dist(x,z,ell=None):
+def sq_dist_scipy(x,z):
+    """ Compute squared distances using scipy.spatial.distance.
+    """
+    return ssd.cdist(x,z,'sqeuclidean')
+
+def sq_dist_dot(x,z):
+    """ Compute squared distances by dot products.
+    """
+    d2 = np.sum(x*x,axis=1).reshape(-1,1) + np.sum(z*z,axis=1).reshape(1,-1)
+    d2 -= 2*np.dot(x,z.T)
+    return d2
+
+def sq_dist_loop(x,z):
+    """ Compute squared distances by a loop over dimensions.
+    """
+    d2 = np.zeros([x.shape[0],z.shape[0]])
+    for i in range(x.shape[1]):
+        d2 += (x[:,i].reshape(-1,1)-z[:,i].reshape(1,-1))**2
+    return d2
+
+def sq_dist(x,z=None,ell=None,sqd=sq_dist_scipy):
     """ Compute a matrix of all pairwise squared distances
         between two sets of vectors, stored in the row of the two matrices:
         x (of size n by D) and z (of size m by D).
     """
     if ell==None:
-        if z==None: return ssd.cdist(x,x,'sqeuclidean')
-        else:       return ssd.cdist(x,z,'sqeuclidean')
+        if z==None: return sqd(x,x)
+        else:       return sqd(x,z)
     else:
         ell = ell.reshape(1,-1)
-        if z==None: return ssd.cdist(x/ell,x/ell,'sqeuclidean')
-        else:       return ssd.cdist(x/ell,z/ell,'sqeuclidean')
+        if z==None: return sqd(x/ell,x/ell)
+        else:       return sqd(x/ell,z/ell)
 
 class noise(Covariance):
     def __init__(self):

@@ -3,6 +3,9 @@ TODO
  - lik: gauss,erf
  - inf: ep,la,fitc
 
+2014-01-18
+ - added support for generic distance computations and timing benchmark
+
 2014-01-13
  - hyper.py containing the hyperparameter iterator
    common to mean/covariance/likelihood
