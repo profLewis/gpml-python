@@ -11,6 +11,8 @@ __version__ = "$Id: covariance.py 913 2013-08-15 12:54:33Z hn $"
 # TODO: mask
 
 import numpy as np
+import hashlib as hl
+from functools import partial
 import scipy.spatial.distance as ssd
 from hyper import HyperIter
 
@@ -99,11 +101,53 @@ class Covariance(HyperIter):
     def __call__(self, x,z=None, diag=False,deriv=None):
         return self.evaluate(x,z=z,diag=diag,deriv=deriv)
 
+def memoise(f=None,n=10,output=False):
+    """ Add a cache to an existing function depending on numpy arrays.
+    """
+    cache = {None:0}
+    if f is None: return partial(memoise,n=n,output=output)
+
+    def hashfun(x):
+        """ Hash function also dealing with numpy arrays.
+            Output is always a string.
+        """
+        if type(np.array([]))==type(x): return hl.sha1(x).hexdigest()
+        else: return str(hash(x))
+
+    def g(*args,**kwargs):
+        """ Augmented function as returned by the decorator.
+        """
+        h = ''                                             # overall hash value
+        for a in args: h += hashfun(a)
+        for v in kwargs.values(): h += hashfun(v)
+        x = hashfun(h)
+        for c in cache:                                                 # older
+            if c!=None: cache[c] = cache[c][0],cache[c][1]+1
+        if x not in cache:                                         # cache miss
+            if output: print "miss(%d)"%len(cache)
+            if len(cache)>=n:                  # cache is full -> delete oldest
+                if output: print "delete"
+                xold,age = None,0
+                for xact in cache:
+                    if xact!=None and cache[xact][1]>age:
+                        xold,age = xact,cache[xact][1]
+                del cache[xold]
+            cache[x] = f(*args,**kwargs),0
+            cache[None] = np.size(cache[x])                          # capacity
+        else:                                                       # reset age
+            if output: print "hit(%d)"%len(cache)
+            cache[x] = cache[x][0],0
+        return cache[x][0]
+
+    return g
+
+@memoise(n=5)
 def sq_dist_scipy(x,z):
     """ Compute squared distances using scipy.spatial.distance.
     """
     return ssd.cdist(x,z,'sqeuclidean')
 
+@memoise(n=5)
 def sq_dist_dot(x,z):
     """ Compute squared distances by dot products.
     """
@@ -111,6 +155,7 @@ def sq_dist_dot(x,z):
     d2 -= 2*np.dot(x,z.T)
     return d2
 
+@memoise(n=5)
 def sq_dist_loop(x,z):
     """ Compute squared distances by a loop over dimensions.
     """

@@ -11,7 +11,7 @@ import time
 import numpy as np
 import covariance as cov
 
-n,m = 4096,1024
+n,m = 2096,1024
 D = 12
 x,z = np.random.randn(n,D),np.random.randn(m,D)
 ell = np.random.rand(D)
@@ -22,6 +22,12 @@ def bench(sqd,x,z,ell):
     d2xx  = d2(x,None)
     d2xz  = d2(x,z)
     d2zx  = d2(z,x)
+    d2xx  = d2(x,None)
+    d2xz  = d2(x,z)
+    d2zx  = d2(z,x)
+    d2xxe = d2(x,None,ell)
+    d2xze = d2(x,z,ell)
+    d2zxe = d2(z,x,ell)
     d2xxe = d2(x,None,ell)
     d2xze = d2(x,z,ell)
     d2zxe = d2(z,x,ell)
