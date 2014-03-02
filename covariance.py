@@ -104,7 +104,6 @@ class Covariance(HyperIter):
 def memoise(f=None,n=10,output=False):
     """ Add a cache to an existing function depending on numpy arrays.
     """
-    cache = {None:0}
     if f is None: return partial(memoise,n=n,output=output)
 
     def hashfun(x):
@@ -114,27 +113,26 @@ def memoise(f=None,n=10,output=False):
         if type(np.array([]))==type(x): return hl.sha1(x).hexdigest()
         else: return str(hash(x))
 
+    cache = {}
     def g(*args,**kwargs):
         """ Augmented function as returned by the decorator.
         """
+        for c in cache:                 # make all cache entries one tick older
+            v,a = cache[c]; cache[c] = v,a+1
         h = ''                                             # overall hash value
-        for a in args: h += hashfun(a)
+        for a in args:            h += hashfun(a)
         for v in kwargs.values(): h += hashfun(v)
         x = hashfun(h)
-        for c in cache:                                                 # older
-            if c!=None: cache[c] = cache[c][0],cache[c][1]+1
         if x not in cache:                                         # cache miss
             if output: print "miss(%d)"%len(cache)
-            if len(cache)>=n:                  # cache is full -> delete oldest
+            if len(cache)>=n:            # cache is full -> delete oldest entry
                 if output: print "delete"
                 xold,age = None,0
                 for xact in cache:
-                    if xact!=None and cache[xact][1]>age:
-                        xold,age = xact,cache[xact][1]
+                    if cache[xact][1]>age: xold,age = xact,cache[xact][1]
                 del cache[xold]
             cache[x] = f(*args,**kwargs),0
-            cache[None] = np.size(cache[x])                          # capacity
-        else:                                                       # reset age
+        else:                                            # cache hit, reset age
             if output: print "hit(%d)"%len(cache)
             cache[x] = cache[x][0],0
         return cache[x][0]
