@@ -120,6 +120,21 @@ class TestInference(unittest.TestCase):
         mf = 1.3*mean.linear(a=[0.8,0.7,0.3])
         self.run_verifications(im,cf,mf,lf,thr)
 
+    def test_ep(self,thr=1e-4):
+        """ Test expectation propagation approximate inference.
+        """
+        im = inf.ep
+        cf,mf,lf = 1.1*cov.se(ell=0.8),mean.zero(),lik.erf()
+        self.run_verifications(im,cf,mf,lf,thr)
+        lf = lik.gauss(sn=0.2)
+        self.run_verifications(im,cf,mf,lf,thr)
+        mf = 2.3*mean.one()
+        self.run_verifications(im,cf,mf,lf,thr)
+        cf = 1.3*cov.se(ell=[0.8,0.7,0.3])
+        self.run_verifications(im,cf,mf,lf,thr)
+        mf = 1.3*mean.linear(a=[0.8,0.7,0.3])
+        self.run_verifications(im,cf,mf,lf,thr)
+
 if __name__ == "__main__":     # run the test cases contained in the test suite
     suite = unittest.TestLoader().loadTestsFromTestCase(TestInference)
     unittest.TextTestRunner(verbosity=2).run(suite)

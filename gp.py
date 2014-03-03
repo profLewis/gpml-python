@@ -15,7 +15,7 @@ from likelihood import gauss
 from inference import exact
 
 # Compatibility gp.inf.func_name <=> gp.lik.name
-comp = {'exact':'gauss'}
+comp = {'exact':set('gauss'),'ep':set('gauss','erf')}
 
 class GaussianProcess:
     """ Main object to perform Gaussian process calculations.

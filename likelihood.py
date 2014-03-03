@@ -9,7 +9,31 @@ Modified: $Id: covariances.py 1263 2013-12-13 13:36:13Z hn $
 __version__ = "$Id: likelihood.py 913 2013-08-15 12:54:33Z hn $"
 
 import numpy as np
+import scipy.special as ssp
 from hyper import HyperIter
+
+def logphi(z):
+    """ Safe implementation of the log of phi(x) = \int_{-\infty}^x N(f|0,1) df
+        logphi(z) = log(normcdf(z)), normcdf(z) = (1+erf(z/sqrt(2)))/2
+    """
+    shp = np.shape(z)
+    z = np.asarray(z).reshape(-1,1)
+    lp = np.zeros_like(z)                                     # allocate memory
+    zmin,zmax = -6.2,-5.5
+    ok = z>zmax                              # safe evaluation for large values
+    bd = z<zmin                                               # use asymptotics
+    ip = ~ok & ~bd                           # interpolate between both of them
+    lam = 1/(1+np.exp( 25*(0.5-(z[ip]-zmin)/(zmax-zmin)) ))   # interp. weights
+    lp[ok] = np.log( (1+ssp.erf(z[ok]/np.sqrt(2)))/2 )
+    #  use lower and upper bound acoording to Abramowitz&Stegun 7.1.13 for z<0
+    # lower -log(pi)/2 -z.^2/2 -log( sqrt(z.^2/2+2   ) -z/sqrt(2) )
+    # upper -log(pi)/2 -z.^2/2 -log( sqrt(z.^2/2+4/pi) -z/sqrt(2) )
+    # the lower bound captures the asymptotics
+    lp[~ok] = -np.log(np.pi)/2 -z[~ok]**2/2 -np.log( np.sqrt(z[~ok]**2/2+2)
+                                                           -z[~ok]/np.sqrt(2) )
+    lp[ip] = (1-lam)*lp[ip] + lam*np.log( (1+ssp.erf(z[ip]/np.sqrt(2)))/2 )
+    if shp==(): return np.float(lp)
+    else:       return lp.reshape(shp)
 
 class Likelihood(HyperIter):
     """ Likelihood function base class.
@@ -48,8 +72,6 @@ class Likelihood(HyperIter):
                  dlp_dh = d^2 log( p(y|f) ) / (df   dhyp_i)
                 d2lp_dh = d^3 log( p(y|f) ) / (df^2 dhyp_i)
         """
-        try:    self.evaluate(1.0,0.0,mode='LA')
-        except: raise NotImplementedError("%s/LA not implemented."%self.name)
         if i==None:                                       # for plain inference
             lp = self.evaluate(y,f,mode='lp')
             dlp,d2lp,d3lp = self.evaluate(y,f,mode='LA')
@@ -72,8 +94,6 @@ class Likelihood(HyperIter):
             w.r.t. the ith hyperparameter.
                 lZ_dh = d log(Z) / dhyp_i
         """
-        try:    self.evaluate(1.0,0.0,fs2=1.0,mode='EP')
-        except: raise NotImplementedError("%s/EP not implemented."%self.name)
         if i==None:                                       # for plain inference
             lZ = self.evaluate(y,fmu,fs2=fs2,mode='lp')
             dlZ,d2lZ = self.evaluate(y,fmu,fs2=fs2,mode='EP')
@@ -102,7 +122,7 @@ class Likelihood(HyperIter):
         """
         if   mode=='lp':
             raise NotImplementedError
-        if   mode=='pred':
+        elif mode=='pred':
             raise NotImplementedError
         elif mode=='LA':
             raise NotImplementedError
@@ -125,7 +145,7 @@ class gauss(Likelihood):
         ymmu = y-fmu
         if   mode=='lp':
             return -ymmu**2/(sn2+fs2)/2 - np.log(2*np.pi*(sn2+fs2))/2
-        if   mode=='pred':
+        elif mode=='pred':
             return fmu,fs2+sn2
         elif mode=='LA':
             if i==None:
@@ -151,20 +171,58 @@ class gauss(Likelihood):
         else: raise Exception('Unknown mode.')
 
 class erf(Likelihood):
-    def __init__(self,sn=None,log_sn=None):
+    def __init__(self):
         """ Construct an error function likelihood.
         """
         Likelihood.__init__(self,hyp={},name='erf')
+    
+    def cum_gauss(self,f,y=None):
+        if y==None: yf = f                      # product of latents and labels
+        else:       yf = y*f
+        p = (1+ssp.erf(yf/np.sqrt(2)))/2
+        return p,logphi(yf)
+
+    def gau_over_cum_gauss(self,f,p):
+        shp = np.shape(f)
+        f,p = np.asarray(f).reshape(-1,1),np.asarray(p).reshape(-1,1)
+        n_p = np.zeros_like(f)                                # allocate memory
+        ok = f>-5                      # naive evaluation for large values of f
+        n_p[ok] = (np.exp(-f[ok]**2/2)/np.sqrt(2*np.pi)) / p[ok]
+        bd = f<-6                                # tight upper bound evaluation
+        n_p[bd] = np.sqrt(f[bd]**2/4+1)-f[bd]/2
+        ip = ~ok & ~bd              # linearly interpolate between both of them
+        t,lam = f[ip],-5-f[ip]
+        n_p[ip] = (1-lam)*(np.exp(-t**2/2)/np.sqrt(2*np.pi))/p[ip] + lam*(
+                                                         np.sqrt(t**2/4+1)-t/2)
+        if shp==(): return np.float(n_p)
+        else:       return n_p.reshape(shp)
 
     def evaluate(self,y,fmu,fs2=0,mode='lp',i=None):
+        p,lp = self.cum_gauss(fmu,y)
         if   mode=='lp':
-            raise NotImplementedError
-        if   mode=='pred':
-            raise NotImplementedError
+            if not np.isscalar(fs2) or fs2!=0:
+                p,lp = self.cum_gauss(fmu/np.sqrt(1+fs2),y)
+            return lp
+        elif   mode=='pred':
+            return 2*p-1,4*p*(1-p)
         elif mode=='LA':
-            raise NotImplementedError
+            n_p = self.gau_over_cum_gauss(y*fmu,p)
+            dlp  = y*n_p                                 # 1st deriv of log lik
+            d2lp = -n_p**2 - y*fmu*n_p                   # 2nd deriv of log lik
+            d3lp = 2*y*n_p**3 +3*fmu*n_p**2 +y*(fmu**2-1)*n_p # 3rd deriv of ll
+            return dlp,d2lp,d3lp
         elif mode=='EP':
-            raise NotImplementedError
+            z = fmu/np.sqrt(1+fs2)
+            _,lZ = self.cum_gauss(z,y)
+            n_p = self.gau_over_cum_gauss(y*z,np.exp(lZ))
+            dlZ = y*n_p/np.sqrt(1+fs2)                # 1st derivative wrt mean
+            d2lZ = -n_p*(y*z+n_p)/(1+fs2)                      # 2nd derivative
+            return dlZ,d2lZ
         elif mode=='VB':
-            raise NotImplementedError
-        else: raise Exception('Unknown mode.')
+            return
+#            d =  0.158482605320942
+#            n = numel(s2); b = d*y.*ones(n,1); z = zeros(n,1);
+#            varargout = {b,z};
+        else:
+            print mode
+            raise Exception('Unknown mode.')

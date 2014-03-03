@@ -2,6 +2,13 @@ TODO
  - mean/cov: masking
  - lik: gauss,erf
  - inf: ep,la,fitc
+ - maybe return only derivatives in ep
+
+2014-03-03
+- likErf
+
+2014-03-02
+- memoisation bug fixed
 
 2014-01-20
 - added memoisation to speed up sq_dist
