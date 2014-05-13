@@ -8,7 +8,7 @@ __version__ = "$Id: mean_test.py 913 2013-08-15 12:54:33Z hn $"
 
 import numpy as np
 import unittest
-import mean
+from .. import mean
 
 class TestMean(unittest.TestCase):
 

@@ -8,7 +8,7 @@ __version__ = "$Id: likelihood_test.py 913 2013-08-15 12:54:33Z hn $"
 
 import numpy as np
 import unittest
-import likelihood as lik
+from .. import likelihood as lik
 
 def erelmax(x,y):
     """ Maximum relative error between two quantities.

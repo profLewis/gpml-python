@@ -8,10 +8,10 @@ Modified: $Id: gp_test.py 913 2013-08-15 12:54:33Z hn $
 __version__ = "$Id: gp_test.py 913 2013-08-15 12:54:33Z hn $"
 
 import unittest
-from inference_test  import TestInference
-from covariance_test import TestCovariance
-from mean_test       import TestMean
-from likelihood_test import TestLikelihood
+from test.inference  import TestInference
+from test.covariance import TestCovariance
+from test.mean       import TestMean
+from test.likelihood import TestLikelihood
 
 class TestGP(unittest.TestCase):
 

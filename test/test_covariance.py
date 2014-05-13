@@ -8,7 +8,7 @@ __version__ = "$Id: covariance_test.py 913 2013-08-15 12:54:33Z hn $"
 
 import numpy as np
 import unittest
-import covariance as cov
+from ..covariance import Covariance as cov
 
 class TestCovariance(unittest.TestCase):
 
@@ -157,7 +157,7 @@ class TestCovariance(unittest.TestCase):
         """ Test Gabor covariance.
         """
         k = cov.gabor(ell=np.random.rand(),p=1.5)
-#        self.run_verifications(k,thr)
+        self.run_verifications(k,thr)
         k = cov.gabor(ell=np.random.rand(self.D),p=1.2)
         self.run_verifications(k,thr)
 
