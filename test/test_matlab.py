@@ -5,6 +5,10 @@ Created on Fri May 09 16:22:39 2014
 @author: 300227723
 """
 
+if __name__ == "__main__" and __package__ is None:  # make parent dir available
+    import sys,os
+    sys.path.insert(0, os.path.abspath('..'))
+
 import scipy.io as sio
 
 mat = sio.loadmat('regression.mat')

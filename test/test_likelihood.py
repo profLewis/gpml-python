@@ -6,9 +6,13 @@ Modified: $Id: likelihood_test.py 913 2013-08-15 12:54:33Z hn $
 """
 __version__ = "$Id: likelihood_test.py 913 2013-08-15 12:54:33Z hn $"
 
+if __name__ == "__main__" and __package__ is None:  # make parent dir available
+    import sys,os
+    sys.path.insert(0, os.path.abspath('..'))
+
 import numpy as np
 import unittest
-from .. import likelihood as lik
+import likelihood as lik
 
 def erelmax(x,y):
     """ Maximum relative error between two quantities.

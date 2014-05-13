@@ -6,6 +6,10 @@ Modified: $Id: inference_test.py 913 2013-08-15 12:54:33Z hn $
 """
 __version__ = "$Id: inference_test.py 913 2013-08-15 12:54:33Z hn $"
 
+if __name__ == "__main__" and __package__ is None:  # make parent dir available
+    import sys,os
+    sys.path.insert(0, os.path.abspath('..'))
+
 import numpy as np
 import unittest
 import inference as inf
